@@ -1,0 +1,389 @@
+$
+&device -g_default device
+&dimen -save -dimen meters m-tons
+
+&device  -mecho n -g_default screen
+&device -primary file -oecho n
+&channel gra_dev -p_device PNG
+&title Atlas_Century
+&parameter -m_dis 4
+$
+$*********************************************      control parameters
+$
+$
+$
+&set demo   = .false.
+$
+$corr: bow to aft x, stdb (y+)
+$              
+   &MACRO SUPLOT NAMES
+    &SELEC :N -SEL %NAMES
+    &IF %DEMO &THEN
+     &DEVICE -g_default SCREEN
+     &SUBTITLE %SUBT PICTURE ISO
+     &PICT ISO -parent :N
+     &LOCAL DUM = &GET(YES/NO )
+     &IF &STRING(MATCH %DUM% YES) &THEN
+     &ENDIF
+     &SUBTITLE %SUBT PICTURE TOP
+     &PICT TOP
+     &LOCAL DUM = &GET(YES/NO )
+     &IF &STRING(MATCH %DUM% YES) &THEN
+     &ENDIF
+     &SUBTITLE %SUBT PICTURE BOW
+     &PICT BOW
+     &LOCAL DUM = &GET(YES/NO )
+     &IF &STRING(MATCH %DUM% YES) &THEN
+     &ENDIF
+     &SUBTITLE %SUBT PICTURE STARB
+     &PICT STARB
+     &LOCAL DUM = &GET(YES/NO )
+     &IF &STRING(MATCH %DUM% YES) &THEN
+     &ENDIF
+    &ELSE
+     &DEVICE -g_default DEVICE
+     &SUBTITLE %SUBT PICTURE ISO
+     &PICT ISO -parent :N
+     &SUBTITLE %SUBT PICTURE TOP
+     &PICT TOP
+     &SUBTITLE %SUBT PICTURE BOW
+     &PICT BOW
+     &SUBTITLE %SUBT PICTURE STARB
+     &PICT STARB
+    &ENDIF
+   &ENDMACRO
+$
+$
+$$$$$$$$$$$$$$$$$$$$
+$ GENERATE
+$$$$$$$$$$$$$$$$$$$$
+$
+&surface
+$
+$ Defining blocks
+$
+&set m2f = 3.28
+$pontoon dim
+&set p_factor = 1.0
+&set beam = 52.7
+&set p_cent = 21.05
+&set p_length = 82.2
+&set p_bredth = 5.3
+&set p_end = 0.5
+&set p_depth = 7.62
+
+$column dim
+&set c_x1 = 13.716
+&set c_x2 = 19.812
+&set c_x3 = 15.24
+&set c_factor = 1.0
+&set c_rad = 3.9623  $7.9246 (ID)
+&set cs_x = 23/%m2f%
+&set c_rad_small = 4/%m2f%
+&set c_depth = 25.908
+&set np = 21
+
+$wind area dim
+&set d_factor = 1.0
+
+&set d_bredth = %beam%
+&set d_length = %p_length%
+&set d_depth = 32.004
+&set q_factor = 1.0
+&set q_bredth = %beam%*%q_factor%
+&set q_length = %c_x1%+%c_x2%/2
+&set q_depth = 40.262
+&set crane_factor = 1
+&set crane_bredth = 15/%m2f%
+&set crane_length = %p_length%
+&set crane_depth = %q_depth%+6/%m2f%
+
+$tanks
+&set t1 = 35/%m2f%
+&set t2 = 20/%m2f%
+&set t3 = 45/%m2f%
+&set t5 = 30/%m2f%
+
+block wd -loc 0 0 %c_depth%+.3
+  plane 0 %d_length% -rect 0 %d_depth%-%c_depth% %d_bredth%
+end_block
+
+block wq -loc 1 0 %d_depth%-1
+  plane 0 %q_length% -rect 0 %q_depth%-%d_depth%+1 %q_bredth%
+end_block
+
+block wc -loc 2 0 %q_depth%
+  plane 0 %crane_length% -rect 0 %crane_depth%-%q_depth% %crane_bredth%
+end
+
+union wd wq wdq
+union wdq wc wdqc
+
+block c1 -loc %c_x1% %p_cent% %p_depth% 0 -90 0
+   plane -1 0 %c_depth%-%p_depth%  -circ 0 0 %c_rad% 0 180/%np% (%np+1)
+end_block
+
+$&set subt = c1
+$suplot c1
+
+move c1 c2 %c_x2% 0 0
+move c1 c3 %c_x2%+%c_x3% 0 0
+move c1 c4 %c_x2%+%c_x3%+%c_x2% 0 0
+
+union c1 c2 c12
+union c12 c3 c123
+union c123 c4 c1234
+$&set subt = c1234
+$suplot c1234
+
+block cs1 -loc %cs_x% %p_cent% %p_depth% 0 -90 0
+  plane -1 0 %c_depth%-%p_depth% -circ 0 0 %c_rad_small% 0 180/%np% (%np+1)
+end_block
+
+move cs1 cs2 %p_length%-2*%cs_x%
+
+union cs1 cs2 cs
+union c1234 cs cs1234
+
+block pontoon -both -loc 0 %p_cent% 0
+   plane 0 -cart 0          %p_depth%-%p_end% \
+                 %p_end%+.1 %p_depth%-%p_end% \
+                 %p_end%+.1 %p_depth%         \
+                 0          %p_depth%         \
+                -%p_end%    %p_depth%         \
+                -%p_end%    %p_depth%-%p_end% \
+                -0.1        %p_depth%-%p_end%
+                 
+   plane 3 -cart 0                  %p_depth%/2 \
+                 %p_bredth%*.45+.1  %p_depth%/2 \
+                 %p_bredth%*.45+.1  %p_depth%   \
+                 0                  %p_depth%   \
+                -%p_bredth%*.45+.1  %p_depth%   \
+                -%p_bredth%*.45+.1  %p_depth%/2 \
+                -0.1                %p_depth%/2   
+                
+   plane 6 -cart 0                   1        \
+                 %p_bredth%*.75+.1   1        \
+                 %p_bredth%*.75+.1  %p_depth% \
+                  0                 %p_depth% \
+                -%p_bredth%*.75+.1  %p_depth% \
+                -%p_bredth%*.75+.1   1        \
+                -0.1                 1
+                
+   plane 9 %p_length%*.25 %p_length%*.5 %p_length%*.75 %p_length%-9 -cart 0  0   \
+               %p_bredth%+.1    0      \
+               %p_bredth%+.1 %p_depth% \
+               0             %p_depth% \
+              -%p_bredth%    %p_depth% \
+              -%p_bredth%    0         \
+              -0.1           0 
+  
+   plane %p_length%-6 -cart 0    %p_end%   \
+               %p_bredth%*.75+.1 %p_end%   \
+	       %p_bredth%*.75+.1 %p_depth% \
+	      -%p_bredth%*.75+.1 %p_depth% \
+	      -%p_bredth%*.75+.1 %p_end%   \
+              -0.1               %p_end%
+   
+   plane %p_length%-3  \
+             -cart 0                2  \
+                  %p_bredth%*.45+.1 2 \
+                  %p_bredth%*.45+.1 %p_depth%   \
+                  0                 %p_depth%   \
+                 -%p_bredth%*.45+.1 %p_depth%   \
+                 -%p_bredth%*.45    2 \
+                 -0.1               2  
+                
+   plane %p_length% -cart 0        %p_depth%-%p_end% \
+                    %p_end%+.1     %p_depth%-%p_end% \
+                    %p_end%+.1     %p_depth%         \
+                    0              %p_depth%         \
+                   -%p_end%        %p_depth%         \
+                   -%p_end%        %p_depth%-%p_end% \
+                   -0.1            %p_depth%-%p_end%
+end_block
+
+
+
+$tanks
+block st1 -both -loc 0 %p_cent% 0  
+   plane 0 -cart 0          %p_depth%-%p_end% \
+                 %p_end%+.1 %p_depth%-%p_end% \
+                 %p_end%+.1 %p_depth%         \
+                 0          %p_depth%         \
+                -%p_end%    %p_depth%         \
+                -%p_end%    %p_depth%-%p_end% \
+                -0.1        %p_depth%-%p_end%
+                 
+   plane 3 -cart 0                  %p_depth%/2 \
+                 %p_bredth%*.45+.1  %p_depth%/2 \
+                 %p_bredth%*.45+.1  %p_depth%   \
+                 0                  %p_depth%   \
+                -%p_bredth%*.45+.1  %p_depth%   \
+                -%p_bredth%*.45+.1  %p_depth%/2 \
+                -0.1                %p_depth%/2   
+                
+   plane 6 -cart 0                   1        \
+                 %p_bredth%*.75+.1   1        \
+                 %p_bredth%*.75+.1  %p_depth% \
+                  0                 %p_depth% \
+                -%p_bredth%*.75+.1  %p_depth% \
+                -%p_bredth%*.75+.1   1        \
+                -0.1                 1
+                
+   plane 9 %t1% -cart 0       0      \
+               %p_bredth%+.1    0      \
+               %p_bredth%+.1 %p_depth% \
+               0             %p_depth% \
+              -%p_bredth%    %p_depth% \
+              -%p_bredth%    0         \
+              -0.1           0
+end_block
+
+reflect_block st1 pt1 y
+
+block st2 -both -loc %t1% %p_cent 0
+   plane 0 %t2%  -cart 0           0      \
+                  %p_bredth%+.1    0      \
+                  %p_bredth%+.1 %p_depth% \
+                  0             %p_depth% \
+                 -%p_bredth%    %p_depth% \
+                 -%p_bredth%    0         \
+                 -0.1           0
+end_block
+
+reflect_block st2 pt2 y
+ 
+block st3 -both -loc %t1%+%t2% %p_cent% 0
+plane 0 %t3%   -cart 0           0      \
+                  %p_bredth%+.1    0      \
+                  %p_bredth%+.1 %p_depth% \
+                  0             %p_depth% \
+                 -%p_bredth%    %p_depth% \
+                 -%p_bredth%    0         \
+                 -0.1           0
+end_block
+
+
+reflect_block st3 pt3 y
+
+block st4 -both -loc %t1%+%t2%+%t3% %p_cent% 0
+plane 0 %t2%    -cart 0           0      \
+                  %p_bredth%+.1    0      \
+                  %p_bredth%+.1 %p_depth% \
+                  0             %p_depth% \
+                 -%p_bredth%    %p_depth% \
+                 -%p_bredth%    0         \
+                 -0.1           0
+end_block
+
+reflect_block st4 pt4 y
+
+block st5 -both -loc %t1%+%t2%+%t3%+%t2% %p_cent%  0
+plane 0 %t5%    -cart 0           0      \
+                  %p_bredth%+.1    0      \
+                  %p_bredth%+.1 %p_depth% \
+                  0             %p_depth% \
+                 -%p_bredth%    %p_depth% \
+                 -%p_bredth%    0         \
+                 -0.1           0
+end_block
+
+reflect_block st5 pt5 y
+
+block st6 -both -loc %t1%+%t2%+%t3%+%t2%+%t5% %p_cent% 0
+plane 0 %t2%    -cart 0           0      \
+                  %p_bredth%+.1    0      \
+                  %p_bredth%+.1 %p_depth% \
+                  0             %p_depth% \
+                 -%p_bredth%    %p_depth% \
+                 -%p_bredth%    0         \
+                 -0.1           0
+end_block
+
+reflect_block st6 pt6 y
+
+block st7 -both -loc %t1%+%t2%+%t3%+%t2%+%t5%+%t2% %p_cent% 0
+plane 0 %t3%    -cart 0           0      \
+                  %p_bredth%+.1    0      \
+                  %p_bredth%+.1 %p_depth% \
+                  0             %p_depth% \
+                 -%p_bredth%    %p_depth% \
+                 -%p_bredth%    0         \
+                 -0.1           0
+end_block
+
+reflect_block st7 pt7 y
+
+block st8 -both -loc %t1%+%t2%+%t3%+%t2%+%t5%+%t2%+%t3% %p_cent% 0
+ plane 0 %p_length%-9-65.532 -cart 0  0   \
+               %p_bredth%+.1    0      \
+               %p_bredth%+.1 %p_depth% \
+               0             %p_depth% \
+              -%p_bredth%    %p_depth% \
+              -%p_bredth%    0         \
+              -0.1           0 
+  
+   plane %p_length%-6-65.532 -cart 0    %p_end%   \
+               %p_bredth%*.75+.1 %p_end%   \
+	       %p_bredth%*.75+.1 %p_depth% \
+	      -%p_bredth%*.75+.1 %p_depth% \
+	      -%p_bredth%*.75+.1 %p_end%   \
+              -0.1               %p_end%
+   
+   plane %p_length%-3-65.532  \
+             -cart 0                2  \
+                  %p_bredth%*.45+.1 2 \
+                  %p_bredth%*.45+.1 %p_depth%   \
+                  0                 %p_depth%   \
+                 -%p_bredth%*.45+.1 %p_depth%   \
+                 -%p_bredth%*.45    2 \
+                 -0.1               2  
+                
+   plane %p_length%-65.532 -cart 0        %p_depth%-%p_end% \
+                    %p_end%+.1     %p_depth%-%p_end% \
+                    %p_end%+.1     %p_depth%         \
+                    0              %p_depth%         \
+                   -%p_end%        %p_depth%         \
+                   -%p_end%        %p_depth%-%p_end% \
+                   -0.1            %p_depth%-%p_end%
+end_block
+
+reflect_block st8 pt8 y
+
+$&set subt = pontoon
+$suplot pontoon
+union cs1234 pontoon sbm1
+
+reflect_block sbm1 sbm2 y
+
+union sbm1 sbm2 sbm12
+
+union  wdqc sbm12 sbm
+
+&set subt = sbm
+suplot sbm
+rename_block @ -panel M -sort xyz -equiv 0.1 -point *M
+
+emit @ -body sbm
+
+emit sbm -piece '-diftype 3ddif -cs_curr 1 1 1 -cs_win 1 1 1' -use_name YES
+
+emit st1 -use_name -compart "-descri 'st1' " -piece '-perm -0.95'
+emit st2 -use_name -compart "-descri 'st2' " -piece '-perm -0.95'
+emit st3 -use_name -compart "-descri 'st3' " -piece '-perm -0.95'
+emit st4 -use_name -compart "-descri 'st4' " -piece '-perm -0.95'
+emit st5 -use_name -compart "-descri 'st5' " -piece '-perm -0.95'
+emit st6 -use_name -compart "-descri 'st6' " -piece '-perm -0.95'
+emit st7 -use_name -compart "-descri 'st7' " -piece '-perm -0.95'
+emit st8 -use_name -compart "-descri 'st8' " -piece '-perm -0.95'
+emit pt1 -use_name -compart "-descri 'pt1' " -piece '-perm -0.95'
+emit pt2 -use_name -compart "-descri 'pt2' " -piece '-perm -0.95'
+emit pt3 -use_name -compart "-descri 'pt3' " -piece '-perm -0.95'
+emit pt4 -use_name -compart "-descri 'pt4' " -piece '-perm -0.95'
+emit pt5 -use_name -compart "-descri 'pt5' " -piece '-perm -0.95'
+emit pt6 -use_name -compart "-descri 'pt6' " -piece '-perm -0.95'
+emit pt7 -use_name -compart "-descri 'pt7' " -piece '-perm -0.95'
+emit pt8 -use_name -compart "-descri 'pt8' " -piece '-perm -0.95'
+
+&finish

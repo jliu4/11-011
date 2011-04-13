@@ -1,0 +1,10 @@
+$******************* use macro
+use_mac stab
+
+$this line has to be before the insert line
+
+&parameter -spgwater 1.025 $sea water density
+
+&insert ./atlas_century_mt.ans/mod00001.txt
+
+&dimen -rem

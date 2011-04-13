@@ -1,0 +1,150 @@
+&device -primary file -oecho n
+&device -mecho no
+&channel gra_dev -p_device PNG $-page_dimen 80 1000
+&dimen -save -dimen meters m-tons
+
+$&logdevice OUTPUT
+
+&set ans       = &info(c_path)/&info(root).ans
+
+&parameter -m_dis 4
+
+inmodel
+
+&set transit_draft = 7.6
+&set oper_draft = 15.2
+
+&if .true. &then  $if     --picture
+  &picture iso -render gl
+  &pict starboard -render gl
+  &pict iso -type compart
+  &pict starboard -type compart
+  &pict top -type compart
+  &pict bottom -type compart
+&endif             $if_end --picture
+
+$check wind area   $if     --wind 
+&if .true. &then   
+  &instate -condition %transit_draft% 0 0
+  &env -wind 100 0
+  &status force
+  &status env
+  &env -wind 100 90
+  &status force
+  &status env
+  &env -wind 0 0
+  &env -wind 0 90
+&endif             $if_end --wind 
+
+&if .true. &then   $if     --tank & hydrostatic table
+  &summary
+   compart_sum properties pieces geom
+   loadg_sum attribute ud_force matrices
+   categ_sum
+  end_&summary
+
+  hs
+  $*******
+  $   1 Draft                   7 KB                       13 BMT                 
+  $   2 Pitch                   8 Water Plane Area         14 BML                 
+  $   3 Roll                    9 LCF                      15 Wetted Surface      
+  $   4 Displacement           10 TCF                      16 TPI                 
+  $   5 LCB                    11 KMT                      17 Moment To Heel      
+  $   6 TCB                    12 KML                      18 Moment To Trim  
+  $*******
+  $hydrostatic table
+  $*******
+   cform 0 0 0 -draft 0.2 150
+    &channel table -file %(ans)/cform.csv $-p_device csv
+    store 1 4 16 5 6 7 9 10 8 12 11 14 13 17 18 15 -head Cform   
+    plot 1 4 -rax 11 -n 
+    end $cform
+
+  
+    $free surface of each tank
+    &select :cmp -select st@ pt@
+    &loop tt &names(compartment, :cmp)
+      tank %tt 0.5
+        &set filename = %(ans)/%(tt).csv
+        &channel table -p_device csv -file %(filename)
+        store 3 4 5 6 7 8 9 10 -head %tt
+      end $tank
+    &endloop
+
+  end $hs
+&endif              $if_end --tank & hydrostatic table        
+
+$only one of below should set true
+&set stab_ok = .false.
+&set kg_allow = .true.
+
+&set kg_tol = 0.1 $default value is 0.5 it is too big for meter dimension
+hstatics
+
+&set dm_wp = 0
+&set st_wp = 100
+
+&set inc = 0.1
+&set range = 400
+
+&set i_ar_ratio = 1.4
+&set yawi = 0 45 90 135 180 225 270 315 
+&select :st -select st@
+&if %kg_allow% &then                $if  kg_allow
+  &set tt = &names(compartment, :st)
+  kg_allow -draft  %transit_draft%      \
+        -kg_min -200 \
+        -kg_max 200 \
+	-wind  %st_wp% %dm_wp \
+	-yaw %yawi \
+	-tol %kg_tol \
+ 	-i_ar_ratio   %i_ar_ratio \
+	-i_gm -10    \
+	-i_range 0 \        
+ 	-i_zcross 30 \      
+ 	-i_theta1 20 \      
+ 	-i_ang_diff 0 \    
+ 	-i_dang 0 
+&endif  
+&if %dm_wp% .gt. 0 &then
+ 	-damage %tt  \
+		-d_gm 0   \
+		-d_range 7 \  
+		-d_down_h 4 \
+		-d_zcross 30 \      
+		-d_theta1 30 \ 
+		-d_theta2 50 \
+		-d_ang_diff 7 \     
+		-d_dang 0 \         
+                -d_dang_t1  7 \
+                -d_ang@marm \
+                -d_ar_resid 
+               $ -d_theta_wt 7
+&endif                             $if_end kg_allow
+&if %stab_ok% &then                $if stab_ok
+  &set draft = %transit_draft%
+  &instate -condition hull %draft% 0 0 
+  $&weight -computer 39.57 
+ 
+    stab_ok %draft% %inc %range \
+           -wind %st_wp% \
+           -yaw %yawi \
+           -i_ar_ratio   %i_ar_ratio \ 
+	   -i_gm 0  \
+	   -damage :st \
+	   -d_gm 0  \ 
+	   -d_range 7 \
+	   -d_down_h 7 \
+	   -d_zcross 7 \      
+	   -d_theta1 20 \     
+	   -d_ang_diff 7 \     
+	   -d_dang 7 \        
+           -d_dang_t1  7  
+
+&endif                              $if_end stab_ok
+     
+&status force
+&status env
+end $hs
+
+&finish

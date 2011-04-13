@@ -1,0 +1,29 @@
+$******************* use macro
+use_mac stab
+
+$this line has to be before the insert line
+
+&parameter -spgwater 1.025 $sea water density
+
+&insert ./atlas_century_ft.ans/mod00001.txt
+$ down-flooding for intact stability
+$&set p_factor = 0.935
+$&set p_cent = 21.05
+$&set p_length = 82.2*%p_factor%
+
+$&set p_depth = 7.62 $8.5
+
+$*df1 0 %p_cent% %p_depth%
+$*df2 0 -%p_cent% %p_depth%
+$*df3 %p_length% %p_cent% %p_depth%
+$*df4 %p_length% -%p_cent% %p_depth%
+
+$&describe compartment sbm -nwt_down *df1 *df2 *df3 *df4
+$wind center point
+$*wp_low %p_length%/2 0 30
+$#area *wp_low %p_length%*10
+
+$*wp_high %p_length%/2 0 50
+$#area *wp_high %p_length%*10
+
+&dimen -rem
